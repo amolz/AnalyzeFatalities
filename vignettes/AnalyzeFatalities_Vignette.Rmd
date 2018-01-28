@@ -1,0 +1,143 @@
+---
+title: "AnalyzeFatalities_Vignette"
+author: "Amol Zele"
+date: "`r Sys.Date()`"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{AnalyzeFatalities_Vignette}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+`AnalyzeFatalities` package offers a set of functions that help to easily analyze accidents data through summary tables and maps for spatial visualization. These functiones are desined considering the US acccidents data.
+
+Essentially, there are 5 functions which are used to execute specific actions. Some of these functions are used by other functions along with functions from external packages to offer a desired functionality.
+
+- `make_filename` : Used to create desired file name with year as input
+- `fars_read` : Used to read the .csv accidents data for any year
+- `fars_read_years` : Used to read selected data fields from data for desired years
+- `fars_summarize_years` : Used to summarize number of accidents by months and year
+- `fars_map_state` : used to plot location of accidents to get a visual of its spatial spread
+
+Each function is explained in detail below
+
+### _Note_: 
+For effective usage, these functions need the required zipped .csv data files to be placed in the R working directory
+
+__Sample filename__ : _accident_2015.csv_ (which is a zipped .csv)
+
+## 1. make_filename
+``` {r make_filename}
+make_filename <- function(year) {
+  year <- as.integer(year)
+  sprintf("accident_%d.csv.bz2", year)
+}
+```
+
+Above code uses the year as input to the function and creates a filename representing zipped .csv file. This can later be readily used to read the desired file from the working directory
+
+__Example of how to use__ : 
+`make_filename(2015)` or `make_filename("2017")`
+
+__Sample output__ : _"accident_2015.csv.bz2"_   or   _"accident_2017.csv.bz2"_ respectively
+
+
+## 2. fars_read
+``` {r fars_read}
+fars_read <- function(filename) {
+  if(!file.exists(filename))
+    stop("file '", filename, "' does not exist")
+  data <- suppressMessages({
+    readr::read_csv(filename, progress = FALSE)
+  })
+  dplyr::tbl_df(data)
+}
+```
+
+Above code uses the filename as input and reads it if it's available in the working directory. Else, if the mentioned file doesn't exist then it shows error and stops.
+
+__Example of how to use__ : 
+`fars_read("accident_2013.csv")`
+
+## 3. fars_read_years
+```{r fars_read_years}
+fars_read_years <- function(years) {
+  lapply(years, function(year) {
+    file <- make_filename(year)
+    tryCatch({
+      dat <- fars_read(file)
+      dplyr::mutate(dat, year = year) %>%
+        dplyr::select(MONTH, year)
+    }, error = function(e) {
+      warning("invalid year: ", year)
+      return(NULL)
+    })
+  })
+}
+```
+Above code uses the 1st and 2nd functions explained earlier to read a desired data file from the working directory and select only the Month and Year fields which can be used for further processing. If file doesn't exist then it throws error and stops.
+
+__Example of how to use__ : 
+`fars_read_years(c(2013,2014))`
+
+## 4. fars_summarize_years
+``` {r fars_summarize_years}
+fars_summarize_years <- function(years) {
+  dat_list <- fars_read_years(years)
+  dplyr::bind_rows(dat_list) %>%
+    dplyr::group_by(year, MONTH) %>%
+    dplyr::summarize(n = n()) %>%
+    tidyr::spread(year, n)
+}
+```
+Above code uses the 3rd function explained earlier to read the desired data files and then summarizes the number of accidents
+
+__Example of how to use__ : 
+`fars_summarize_years(c(2013,2014))`
+
+__Sample Output__ : First 5 rows where numbers represent count of accidents
+``` {r, echo = FALSE, results = "asis"}
+Month = c(1:5)
+`2013` = c(2230, 1952, 2356, 2300, 2532)
+`2014` = c(2168, 1893, 2245, 2308, 2596)
+dat2 = as.data.frame(cbind(Month, `2013`, `2014`))
+pander::pandoc.table(dat2)
+```
+
+
+
+## 5. fars_map_state
+``` {r fars_map_state}
+fars_map_state <- function(state.num, year) {
+  filename <- make_filename(year)
+  data <- fars_read(filename)
+  state.num <- as.integer(state.num)
+
+  if(!(state.num %in% unique(data$STATE)))
+    stop("invalid STATE number: ", state.num)
+  data.sub <- dplyr::filter(data, STATE == state.num)
+  if(nrow(data.sub) == 0L) {
+    message("no accidents to plot")
+    return(invisible(NULL))
+  }
+  is.na(data.sub$LONGITUD) <- data.sub$LONGITUD > 900
+  is.na(data.sub$LATITUDE) <- data.sub$LATITUDE > 90
+  with(data.sub, {
+    maps::map("state", ylim = range(LATITUDE, na.rm = TRUE),
+              xlim = range(LONGITUD, na.rm = TRUE))
+    graphics::points(LONGITUD, LATITUDE, pch = 46)
+  })
+}
+```
+Above code uses 1st and 2nd functions explained above to read data files for one particular year and later plots the accident locations for the mentioned state. Incase invalid state or year numbers are mentioned by user then error message is thrown.
+
+__Example of how to use__ : 
+`fars_map_state(1,2013)`
+

@@ -1,0 +1,7 @@
+"0","fars_summarize_years <- function(years) {"
+"0","  dat_list <- fars_read_years(years)"
+"0","  dplyr::bind_rows(dat_list) %>%"
+"0","    dplyr::group_by(year, MONTH) %>%"
+"0","    dplyr::summarize(n = n()) %>%"
+"0","    tidyr::spread(year, n)"
+"0","}"

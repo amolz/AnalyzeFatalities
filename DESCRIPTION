@@ -1,0 +1,18 @@
+Package: AnalyzeFatalities
+Type: Package
+Title: Analyze Fatalities Using Summary Tables And Maps 
+Version: 0.1.0
+Author: Amol Zele
+Maintainer: Amol Zele <amol.zele@gmail.com>
+Description: AnalyzeFatalities package offers a set of functions
+    that help to effectively summarize accidents data to understand 
+    monthly and yearly trends and visualize their spatial spread.
+License: CC0
+Encoding: UTF-8
+LazyData: true
+RoxygenNote: 6.0.1
+Imports: dplyr, maps, readr, tidyr, pander
+Suggests: knitr,
+    rmarkdown,
+    testthat
+VignetteBuilder: knitr
