@@ -19,3 +19,5 @@ fars_summarize_years <- function(years) {
 fars_summarize_years(c(2013))
 
 ```
+# Travis Badge obtained on 29-Jan-2018
+[![Build Status](https://travis-ci.org/amolz/AnalyzeFatalities.svg?branch=master)](https://travis-ci.org/amolz/AnalyzeFatalities)
